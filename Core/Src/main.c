@@ -23,6 +23,7 @@
 #include "cordic.h"
 #include "dac.h"
 #include "dma.h"
+#include "fdcan.h"
 #include "i2c.h"
 #include "opamp.h"
 #include "spi.h"
@@ -79,17 +80,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
-
-  NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-
-  /* System interrupt init*/
-
-  /** Disable the internal Pull-Up in Dead Battery pins of UCPD peripheral
-  */
-  LL_PWR_DisableUCPDDeadBattery();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -121,6 +112,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM6_Init();
   MX_TIM7_Init();
+  MX_FDCAN1_Init();
   /* USER CODE BEGIN 2 */
   cpp_wrapper_main_setup();
   /* USER CODE END 2 */
@@ -178,7 +170,7 @@ void SystemClock_Config(void)
   {
   }
 
-  /* Insure 1ï¿½ï¿½s transition state at intermediate medium speed clock based on DWT */
+  /* Insure 1ƒÊs transition state at intermediate medium speed clock based on DWT */
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
   DWT->CYCCNT = 0;
@@ -187,10 +179,14 @@ void SystemClock_Config(void)
   LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
   LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
   LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
-
-  LL_Init1msTick(170000000);
-
   LL_SetSystemCoreClock(170000000);
+
+   /* Update the time base */
+  if (HAL_InitTick (TICK_INT_PRIORITY) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  LL_RCC_SetFDCANClockSource(LL_RCC_FDCAN_CLKSOURCE_PCLK1);
   LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_HSI);
   LL_RCC_SetI2CClockSource(LL_RCC_I2C3_CLKSOURCE_HSI);
   LL_RCC_SetADCClockSource(LL_RCC_ADC12_CLKSOURCE_PLL);
