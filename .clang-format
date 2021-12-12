@@ -5,3 +5,5 @@ AllowShortCaseLabelsOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine : true
 AlignConsecutiveAssignments : true
+AlignConsecutiveDeclarations : true
+AlignTrailingComments : true
