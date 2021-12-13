@@ -9,6 +9,7 @@ extern "C" {
 #include "stm32g4xx.h"
 
 void USART1TC_ITR();
+void TIM4_ITR();
 void TIM6_ITR();
 void TIM7_ITR();
 

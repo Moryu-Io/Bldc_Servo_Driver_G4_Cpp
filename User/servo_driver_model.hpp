@@ -3,6 +3,9 @@
 
 #include "main.h"
 #include "com_base.hpp"
+#include "bldc.hpp"
+
+BLDC* get_bldc_if();
 
 COM_BASE* get_debug_com();
 
