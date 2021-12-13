@@ -227,21 +227,19 @@ void DMA1_Channel2_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles DMA1 channel4 global interrupt.
+  * @brief This function handles USART1 global interrupt / USART1 wake-up interrupt through EXTI line 25.
   */
-void DMA1_Channel4_IRQHandler(void)
+void USART1_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Channel4_IRQn 0 */
-  if (LL_DMA_IsActiveFlag_TC4(DMA1) == 1) {
-    // 送信完了フラグをクリア
-    LL_DMA_ClearFlag_TC4(DMA1);
-    DMA1CH4_ITR();
+  /* USER CODE BEGIN USART1_IRQn 0 */
+  if(LL_USART_IsActiveFlag_TC(USART1)){
+    LL_USART_ClearFlag_TC(USART1);
+    USART1TC_ITR();
   }
-  /* USER CODE END DMA1_Channel4_IRQn 0 */
+  /* USER CODE END USART1_IRQn 0 */
+  /* USER CODE BEGIN USART1_IRQn 1 */
 
-  /* USER CODE BEGIN DMA1_Channel4_IRQn 1 */
-
-  /* USER CODE END DMA1_Channel4_IRQn 1 */
+  /* USER CODE END USART1_IRQn 1 */
 }
 
 /**

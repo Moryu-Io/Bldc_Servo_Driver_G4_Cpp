@@ -34,7 +34,7 @@ void UART_DMAC::init_rx() {
  * 
  */
 void UART_DMAC::init_tx() {
-  LL_DMA_EnableIT_TC((DMA_TypeDef *)dma_, (uint32_t)dma_ch_tx_);
+  LL_USART_EnableIT_TC((USART_TypeDef *)usart_);
   is_tx_comp = true;
   disable_tx();
 }
@@ -45,7 +45,7 @@ void UART_DMAC::init_tx() {
  * @return uint16_t 
  */
 uint16_t UART_DMAC::get_rxBuf_head() {
-  DMA_Channel_TypeDef *_dma_ch = (DMA_Channel_TypeDef *)((uint32_t)dma_ + 0x08 * (dma_ch_rx_ - 1));
+  DMA_Channel_TypeDef *_dma_ch = (DMA_Channel_TypeDef *)((uint32_t)dma_ + 0x08 + 0x14 * dma_ch_rx_);
   return ((u16_rxBuf_len_ - (uint16_t)_dma_ch->CNDTR)) & (u16_rxBuf_len_ - 1);
 }
 
@@ -97,7 +97,15 @@ uint16_t UART_DMAC::get_rxbytes(uint8_t *_arr, uint16_t _size) {
   uint16_t _rxbuf_size = get_rxBuf_datasize();
   if(_rxbuf_size < _size) _size = _rxbuf_size;
 
-  memcpy(_arr, pu8_rxBuf_, _size);
+  if(u16_rxBuf_tail_ + _size <= u16_rxBuf_len_) {
+    memcpy(_arr, &(pu8_rxBuf_[u16_rxBuf_tail_]), _size);
+  } else {
+    // 取得データが循環部分をまたぐ場合は分けてメモリコピー
+    uint16_t _hlen = u16_rxBuf_len_ - u16_rxBuf_tail_;
+    memcpy(_arr, &(pu8_rxBuf_[u16_rxBuf_tail_]), _hlen);
+    memcpy(&_arr[_hlen], pu8_rxBuf_, _size - _hlen);
+  }
+
   u16_rxBuf_tail_ = (u16_rxBuf_tail_ + _size) & (u16_rxBuf_len_ - 1);
 
   // DMAの有効化
@@ -128,8 +136,9 @@ void UART_DMAC::set_txbytes(uint8_t *_arr, uint16_t _size) {
 
   // UART送信 DMAアドレスの設定
   LL_DMA_ConfigAddresses((DMA_TypeDef *)dma_, (uint32_t)dma_ch_tx_,
+                         (uint32_t)pu8_txBuf_,
                          LL_USART_DMA_GetRegAddr((USART_TypeDef *)usart_, LL_USART_DMA_REG_DATA_TRANSMIT),
-                         (uint32_t)pu8_txBuf_, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
+                         LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
 
   // UART送信 データアドレスの長さを設定
   LL_DMA_SetDataLength((DMA_TypeDef *)dma_, (uint32_t)dma_ch_tx_, _size);

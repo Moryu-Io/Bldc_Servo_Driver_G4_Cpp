@@ -8,6 +8,6 @@ void cpp_wrapper_main_setup(void){
 }
 
 void cpp_wrapper_main_loop(void){
-    LL_mDelay(10);
+    LL_mDelay(100);
 }
 
