@@ -25,6 +25,9 @@ inline float satf(float _x, float _u, float _l){
 inline float sinf(float _x) { return arm_sin_f32(_x); };
 inline float cosf(float _x) { return arm_cos_f32(_x); };
 
+float atanf(float x);
+float atan2f(float y, float x);
+
 }; // namespace mymath
 
 #endif

@@ -1,11 +1,31 @@
+#include "adcc.hpp"
 #include "bldc.hpp"
 #include "bldc_drive_method.hpp"
+#include "debug_dac.hpp"
+#include "debug_printf.hpp"
 #include "gate_drive_controller.hpp"
-#include "adcc.hpp"
 #include "mymath.hpp"
 #include "servo_driver_model.hpp"
 #include "uart_dmac.hpp"
-#include "debug_dac.hpp"
+
+
+enum ADC1CH {
+  CurFb_U, // CH3,  PA2
+  CurFb_W, // CH12, PB1
+  Bemf_U,  // CH6,  PC0
+  Bemf_V,  // CH7,  PC1
+  Bemf_W,  // CH8,  PC2
+  TempSens // TEMP
+};
+static ADCC<6> Adc1Ctrl(ADC1, DMA2, LL_DMA_CHANNEL_1);
+
+enum ADC2CH {
+  CurFb_V,  // CH3,  PA6
+  AD_A,     // CH12, PB2
+  AD_B,     // CH5,  PC4
+  VBAT_MON, // CH1,  PA0
+};
+static ADCC<4> Adc2Ctrl(ADC2, DMA2, LL_DMA_CHANNEL_2);
 
 class Maxon_BLDC : public BLDC {
 public:
@@ -76,6 +96,14 @@ public:
 
     u16_hall_counter_ += s8_now_motor_dir_;
 
+    /* 電気角キャリブレーション用(いずれ自動化) */
+    //uint16_t HallAd_A = Adc2Ctrl.get_adc_data(ADC2CH::AD_A);
+    //uint16_t HallAd_B = Adc2Ctrl.get_adc_data(ADC2CH::AD_B);
+    //float hallad_center_shift_A = (float)HallAd_A - 2048;
+    //float hallad_center_shift_B = (float)HallAd_B - 2048;
+    //float fl_hall_atan_deg = mymath::rad2deg(mymath::atan2f(hallad_center_shift_A, hallad_center_shift_B));
+    //debug_printf("%d,%d,%d \n", u8_now_hall_state_, _u8_next_hall_state, (int)(fl_hall_atan_deg*10.0f));
+
     u8_now_hall_state_ = _u8_next_hall_state;
   };
 
@@ -89,6 +117,15 @@ public:
     set_enable_register(_Vol.u8_U_out_enable, _Vol.u8_V_out_enable, _Vol.u8_W_out_enable);
   };
 
+  float get_elec_angle() override {
+    uint16_t HallAd_A = Adc2Ctrl.get_adc_data(ADC2CH::AD_A);
+    uint16_t HallAd_B = Adc2Ctrl.get_adc_data(ADC2CH::AD_B);
+    float hallad_center_shift_A = (float)HallAd_A - 2048;
+    float hallad_center_shift_B = (float)HallAd_B - 2048;
+    float fl_hall_atan_deg = mymath::rad2deg(mymath::atan2f(hallad_center_shift_A, hallad_center_shift_B));
+    return (fl_hall_atan_deg - 71.5f) * 0.25f;  // 0度までoffsetして機械角→電気角変換
+  }
+
   bool get_fault_state() override {
     return ((LL_GPIO_ReadInputPort(GPIOE) & GPIO_PIN_14) != GPIO_PIN_14);
   };
@@ -101,40 +138,40 @@ private:
 
   inline void set_enable_register(uint8_t Uenable, uint8_t Venable, uint8_t Wenable) {
     ///*
-    if(Uenable == DRIVE_OUT_BOTH_ENABLE){
+    if(Uenable == DRIVE_OUT_BOTH_ENABLE) {
       LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_PWM1);
       LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1 | LL_TIM_CHANNEL_CH1N);
-    }else if(Uenable == DRIVE_OUT_LOW_ENABLE){
+    } else if(Uenable == DRIVE_OUT_LOW_ENABLE) {
       LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_ACTIVE);
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);
       LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
-    }else{
+    } else {
       LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_INACTIVE);
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1);
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH1N);
     }
 
-    if(Venable == DRIVE_OUT_BOTH_ENABLE){
+    if(Venable == DRIVE_OUT_BOTH_ENABLE) {
       LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_PWM1);
       LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2 | LL_TIM_CHANNEL_CH2N);
-    }else if(Venable == DRIVE_OUT_LOW_ENABLE){
+    } else if(Venable == DRIVE_OUT_LOW_ENABLE) {
       LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_ACTIVE);
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2);
       LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
-    }else{
+    } else {
       LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH2, LL_TIM_OCMODE_INACTIVE);
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2);
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH2N);
     }
 
-    if(Wenable == DRIVE_OUT_BOTH_ENABLE){
+    if(Wenable == DRIVE_OUT_BOTH_ENABLE) {
       LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_PWM1);
       LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3 | LL_TIM_CHANNEL_CH3N);
-    }else if(Wenable == DRIVE_OUT_LOW_ENABLE){
+    } else if(Wenable == DRIVE_OUT_LOW_ENABLE) {
       LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_ACTIVE);
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3);
       LL_TIM_CC_EnableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
-    }else{
+    } else {
       LL_TIM_OC_SetMode(TIM1, LL_TIM_CHANNEL_CH3, LL_TIM_OCMODE_INACTIVE);
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3);
       LL_TIM_CC_DisableChannel(TIM1, LL_TIM_CHANNEL_CH3N);
@@ -153,27 +190,10 @@ private:
     return u32_CCER_U | u32_CCER_V | u32_CCER_W;
     //*/
   }
+
+  void update_elecangle() {
+  }
 };
-
-
-enum ADC1CH {
-  CurFb_U, // CH3,  PA2
-  CurFb_W, // CH12, PB1
-  Bemf_U,  // CH6,  PC0
-  Bemf_V,  // CH7,  PC1
-  Bemf_W,  // CH8,  PC2
-  TempSens // TEMP
-};
-static ADCC<6> Adc1Ctrl(ADC1, DMA2, LL_DMA_CHANNEL_1);
-
-enum ADC2CH {
-  CurFb_V,   // CH3,  PA6
-  AD_A,      // CH12, PB2
-  AD_B,      // CH5,  PC4
-  VBAT_MON,  // CH1,  PA0
-};
-static ADCC<4> Adc2Ctrl(ADC2, DMA2, LL_DMA_CHANNEL_2);
-
 
 static Maxon_BLDC MxnBldc;
 
@@ -184,7 +204,6 @@ BldcDriveMethod *           get_bldcdrv_method() { return &bldc_drv_method_6step
 
 static GateDriveController GateDrvController(I2C3, DMA1, LL_DMA_CHANNEL_1, LL_DMA_CHANNEL_2);
 I2CC *                     get_i2cc() { return &GateDrvController; };
-
 
 static DACC Dac1Ctrl;
 
@@ -210,7 +229,7 @@ COM_BASE *get_debug_com() { return &Rs485Com; };
 void initialize_servo_driver_model() {
   Rs485Com.init_constparam(u8_RS485_RXBUF, RS485_RXBUF_LENGTH,
                            u8_RS485_TXBUF, RS485_TXBUF_LENGTH);
-  //Rs485Com.init_rxtx();
+  Rs485Com.init_rxtx();
 
   Dac1Ctrl.init();
   Adc1Ctrl.init();
@@ -227,10 +246,8 @@ void initialize_servo_driver_model() {
   GateDrvController.get_status_reg();
 }
 
-
-void loop_servo_driver_model(){
-  uint16_t HallAd_A = Adc2Ctrl.get_adc_data(ADC2CH::AD_A);
-  uint16_t HallAd_B = Adc2Ctrl.get_adc_data(ADC2CH::AD_B);
-
+void loop_servo_driver_model() {
+    uint16_t HallAd_A = Adc2Ctrl.get_adc_data(ADC2CH::AD_A);
+    uint16_t HallAd_B = Adc2Ctrl.get_adc_data(ADC2CH::AD_B);
   Dac1Ctrl.set_dacs(HallAd_A, HallAd_B);
 }
