@@ -1,9 +1,11 @@
 #include "bldc.hpp"
 #include "bldc_drive_method.hpp"
 #include "gate_drive_controller.hpp"
+#include "adcc.hpp"
 #include "mymath.hpp"
 #include "servo_driver_model.hpp"
 #include "uart_dmac.hpp"
+#include "debug_dac.hpp"
 
 class Maxon_BLDC : public BLDC {
 public:
@@ -153,6 +155,26 @@ private:
   }
 };
 
+
+enum ADC1CH {
+  CurFb_U, // CH3,  PA2
+  CurFb_W, // CH12, PB1
+  Bemf_U,  // CH6,  PC0
+  Bemf_V,  // CH7,  PC1
+  Bemf_W,  // CH8,  PC2
+  TempSens // TEMP
+};
+static ADCC<6> Adc1Ctrl(ADC1, DMA2, LL_DMA_CHANNEL_1);
+
+enum ADC2CH {
+  CurFb_V,   // CH3,  PA6
+  AD_A,      // CH12, PB2
+  AD_B,      // CH5,  PC4
+  VBAT_MON,  // CH1,  PA0
+};
+static ADCC<4> Adc2Ctrl(ADC2, DMA2, LL_DMA_CHANNEL_2);
+
+
 static Maxon_BLDC MxnBldc;
 
 BLDC *get_bldc_if() { return &MxnBldc; };
@@ -162,6 +184,9 @@ BldcDriveMethod *           get_bldcdrv_method() { return &bldc_drv_method_6step
 
 static GateDriveController GateDrvController(I2C3, DMA1, LL_DMA_CHANNEL_1, LL_DMA_CHANNEL_2);
 I2CC *                     get_i2cc() { return &GateDrvController; };
+
+
+static DACC Dac1Ctrl;
 
 class FSD_RS485 : public UART_DMAC {
 public:
@@ -187,6 +212,12 @@ void initialize_servo_driver_model() {
                            u8_RS485_TXBUF, RS485_TXBUF_LENGTH);
   //Rs485Com.init_rxtx();
 
+  Dac1Ctrl.init();
+  Adc1Ctrl.init();
+  Adc2Ctrl.init();
+  Adc1Ctrl.start();
+  Adc2Ctrl.start();
+
   MxnBldc.init();
   GateDrvController.init();
   //GateDrvController.set_reset();
@@ -198,6 +229,8 @@ void initialize_servo_driver_model() {
 
 
 void loop_servo_driver_model(){
-  GateDrvController.get_status_reg();
-  //GateDrvController.set_clear();
+  uint16_t HallAd_A = Adc2Ctrl.get_adc_data(ADC2CH::AD_A);
+  uint16_t HallAd_B = Adc2Ctrl.get_adc_data(ADC2CH::AD_B);
+
+  Dac1Ctrl.set_dacs(HallAd_A, HallAd_B);
 }

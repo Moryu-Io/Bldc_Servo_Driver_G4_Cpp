@@ -14,7 +14,7 @@ void cpp_wrapper_main_loop(void) {
   volatile uint32_t enc_state = get_bldc_if()->get_hall_state();
   volatile bool falut_sts   = get_bldc_if()->get_fault_state();
   volatile bool ready_sts = get_bldc_if()->get_ready_state();
-  LL_mDelay(100);
+  LL_mDelay(1);
   BldcDriveMethod::Ref inputVol = {
     .Vq = 1.0f,
     .Vd = 0.0f,
