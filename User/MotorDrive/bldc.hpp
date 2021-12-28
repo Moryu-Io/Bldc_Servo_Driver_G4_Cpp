@@ -4,6 +4,10 @@
 #include "main.h"
 #include "stm32g4xx.h"
 
+#define DRIVE_OUT_BOTH_ENABLE (2)
+#define DRIVE_OUT_LOW_ENABLE  (1)
+#define DRIVE_OUT_DISABLE     (0)
+
 class BLDC {
 public:
   BLDC(){};
@@ -13,9 +17,11 @@ public:
     float V;
     float W;
   };
-
+  
   struct DriveDuty {
-    uint32_t   u32_Out_Enable;
+    uint8_t   u8_U_out_enable;
+    uint8_t   u8_V_out_enable;
+    uint8_t   u8_W_out_enable;
     DrivePhase Duty;
   };
 
@@ -27,6 +33,9 @@ public:
 
   virtual uint8_t  get_hall_state() { return u8_now_hall_state_; };
   virtual uint32_t get_hall_count() { return u16_hall_counter_; };
+
+  virtual bool get_fault_state() { return false; };
+  virtual bool get_ready_state() { return true; }
 
 protected:
   uint8_t    u8_now_hall_state_;

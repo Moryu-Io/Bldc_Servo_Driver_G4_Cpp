@@ -204,7 +204,10 @@ void SysTick_Handler(void)
 void DMA1_Channel1_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
-
+  if(LL_DMA_IsActiveFlag_TC1(DMA1)){
+    LL_DMA_ClearFlag_TC1(DMA1);
+    I2C3RDMA_ITR();
+  }
   /* USER CODE END DMA1_Channel1_IRQn 0 */
 
   /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
@@ -218,7 +221,10 @@ void DMA1_Channel1_IRQHandler(void)
 void DMA1_Channel2_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel2_IRQn 0 */
-
+  if(LL_DMA_IsActiveFlag_TC2(DMA1)){
+    LL_DMA_ClearFlag_TC2(DMA1);
+    I2C3TDMA_ITR();
+  }
   /* USER CODE END DMA1_Channel2_IRQn 0 */
 
   /* USER CODE BEGIN DMA1_Channel2_IRQn 1 */

@@ -95,6 +95,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_DAC1_Init();
@@ -170,7 +171,7 @@ void SystemClock_Config(void)
   {
   }
 
-  /* Insure 1ƒÊs transition state at intermediate medium speed clock based on DWT */
+  /* Insure 1ï¿½ï¿½s transition state at intermediate medium speed clock based on DWT */
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
   DWT->CYCCNT = 0;
