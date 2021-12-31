@@ -123,7 +123,8 @@ public:
     float hallad_center_shift_A = (float)HallAd_A - 2048;
     float hallad_center_shift_B = (float)HallAd_B - 2048;
     float fl_hall_atan_deg = mymath::rad2deg(mymath::atan2f(hallad_center_shift_A, hallad_center_shift_B));
-    return (fl_hall_atan_deg - 71.5f) * 0.25f;  // 0度までoffsetして機械角→電気角変換
+    float fl_elec_ang_deg  = (fl_hall_atan_deg - 71.5f + 22.5f) * 4.0f;  // 機械角→電気角変換
+    return fl_elec_ang_deg;
   }
 
   bool get_fault_state() override {
@@ -200,7 +201,8 @@ static Maxon_BLDC MxnBldc;
 BLDC *get_bldc_if() { return &MxnBldc; };
 
 static BldcDriveMethod6Step bldc_drv_method_6step(&MxnBldc);
-BldcDriveMethod *           get_bldcdrv_method() { return &bldc_drv_method_6step; };
+static BldcDriveMethodSine  bldc_drv_method_sine(&MxnBldc);
+BldcDriveMethod *           get_bldcdrv_method() { return &bldc_drv_method_sine; };
 
 static GateDriveController GateDrvController(I2C3, DMA1, LL_DMA_CHANNEL_1, LL_DMA_CHANNEL_2);
 I2CC *                     get_i2cc() { return &GateDrvController; };
@@ -247,7 +249,9 @@ void initialize_servo_driver_model() {
 }
 
 void loop_servo_driver_model() {
-    uint16_t HallAd_A = Adc2Ctrl.get_adc_data(ADC2CH::AD_A);
-    uint16_t HallAd_B = Adc2Ctrl.get_adc_data(ADC2CH::AD_B);
-  Dac1Ctrl.set_dacs(HallAd_A, HallAd_B);
+  //uint16_t HallAd_A = Adc2Ctrl.get_adc_data(ADC2CH::AD_A);
+  //uint16_t HallAd_B = Adc2Ctrl.get_adc_data(ADC2CH::AD_B);
+  //Dac1Ctrl.set_dacs(HallAd_A, HallAd_B);
+  bldc_drv_method_sine.update();
+  //debug_printf("%d \n", (int)(MxnBldc.get_elec_angle()));
 }

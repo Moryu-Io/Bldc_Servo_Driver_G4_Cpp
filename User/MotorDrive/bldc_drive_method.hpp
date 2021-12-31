@@ -41,6 +41,13 @@ protected:
 
 };
 
+class BldcDriveMethodSine : public BldcDriveMethod {
+public:
+  BldcDriveMethodSine(BLDC *_bldc) : BldcDriveMethod(_bldc){};
+
+  void update() override;
+};
+
 class BldcDriveMethodVector : BldcDriveMethod {
 public:
   BldcDriveMethodVector(BLDC *_bldc) : BldcDriveMethod(_bldc){};
